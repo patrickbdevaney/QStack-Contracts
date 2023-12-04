@@ -43,6 +43,17 @@ class proposal extends Contract {
       this.matchingPoolBalance += amount;
     }
 
+    async getMatchingPoolBalance(): Promise<number> {
+      return this.matchingPoolBalance;
+    }
+    
+    async getFundingPeriodData(): Promise<{ start: number; end: number }> {
+      return {
+        start: this.fundingPeriodStart,
+        end: this.fundingPeriodEnd,
+      };
+    }
+
   async submitProjectProposal(projectProposal: ProjectProposal) {
     const currentTime = globals.latestTimestamp;
     if (currentTime < this.fundingPeriodStart || currentTime > this.fundingPeriodEnd) {
@@ -85,7 +96,8 @@ class proposal extends Contract {
     projectProposal.matchedFunds = matchedFunds;
     return projectProposal;
   }
-
+  // Consider adding a governance mechanism to revoke funds distributed if needed
+  // However, this contradicts the ethos of quadratic funding
   async distributeMatchedFunds(send: (recipient: Address, amount: number) => void) {
     // Check if the current time is after the funding period end
     const currentTime = globals.latestTimestamp;
