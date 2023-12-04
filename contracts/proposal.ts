@@ -1,5 +1,6 @@
 declare global {
   const msg: { sender: Address };
+  function send(recipient: Address, amount: number): void;
 }
 
 import { Contract } from '@algorandfoundation/tealscript';
@@ -27,7 +28,26 @@ class proposal extends Contract {
   // Matching pool balance
   matchingPoolBalance: number = 0;
 
+    // Current funding period start and end timestamps
+    fundingPeriodStart: number;
+    fundingPeriodEnd: number;
+  
+    async initialize() {
+      // Set the initial funding period
+      this.fundingPeriodStart = globals.latestTimestamp;
+      this.fundingPeriodEnd = this.fundingPeriodStart + 3 * 30 * 24 * 60 * 60; // 3 months in seconds
+    }
+
+    async fundMatchingPool(amount: number) {
+      // Add the contribution to the matching pool balance (microAlgos)
+      this.matchingPoolBalance += amount;
+    }
+
   async submitProjectProposal(projectProposal: ProjectProposal) {
+    const currentTime = globals.latestTimestamp;
+    if (currentTime < this.fundingPeriodStart || currentTime > this.fundingPeriodEnd) {
+      throw new Error('Proposals can only be submitted during the active funding period');
+    }
     // Track contributions for the project
     const projectID = this.projectProposals.size + 1;
     const projectContributions = this.projectContributions.get(projectID) || [];
@@ -64,5 +84,37 @@ class proposal extends Contract {
 
     projectProposal.matchedFunds = matchedFunds;
     return projectProposal;
+  }
+
+  async distributeMatchedFunds(send: (recipient: Address, amount: number) => void) {
+    // Check if the current time is after the funding period end
+    const currentTime = globals.latestTimestamp;
+    if (currentTime <= this.fundingPeriodEnd) {
+      throw new Error('Matched funds can only be distributed after the funding period ends');
+    }
+  
+    // Calculate and distribute matched funds to eligible projects
+    for (const [projectID, projectProposal] of this.projectProposals) {
+      const projectContributions = this.projectContributions.get(projectID) || [];
+      const totalContributions = projectContributions.reduce((sum, contribution) => sum + contribution.amount, 0);
+      const matchedFunds = ((totalContributions + 1) ** (1 / 2) - 1) ** 2;
+  
+      // Transfer matched funds to project owner's address
+      const projectOwnerAddress = projectProposal.ownerAddress;
+      send(projectOwnerAddress, matchedFunds);
+  
+      // Reset project proposal's matched funds
+      projectProposal.matchedFunds = 0;
+      this.projectProposals.set(projectID, projectProposal);
+    }
+  
+    // Start a new funding period
+    this.startNewFundingPeriod();
+  }
+
+  async startNewFundingPeriod() {
+    // Reset funding period start and end timestamps
+    this.fundingPeriodStart = globals.latestTimestamp;
+    this.fundingPeriodEnd = this.fundingPeriodStart + 3 * 30 * 24 * 60 * 60; // 3 months in seconds
   }
 }
