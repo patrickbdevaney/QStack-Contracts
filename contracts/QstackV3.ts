@@ -17,7 +17,7 @@ interface ProjectProposal {
   contributions: Contribution[]; // Array to store contributions for this proposal
 }
 
-class proposal extends Contract {
+class QstackV3 extends Contract {
   proposer = GlobalStateKey<Address>();
   contributor = GlobalStateKey<Address>();
   fundingPeriodStart = GlobalStateKey<number>();
