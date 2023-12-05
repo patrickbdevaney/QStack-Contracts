@@ -86,7 +86,7 @@ async getProposalFundingData(proposalID: number): Promise<ProjectProposal> {
 
     const projectProposal: ProjectProposal = projectProposalEntry[1];
 
-    // ...
+ 
 
     return projectProposal;
 }
@@ -94,4 +94,56 @@ async getProposalFundingData(proposalID: number): Promise<ProjectProposal> {
   async addProjectContribution(proposalID: number, contribution: Contribution): Promise<void> {
     const existingContributions = await (await this.getProposalFundingData(proposalID)).contributions;
     existingContributions.push(contribution);
-  }}
+
+  }
+// Access and modify project contributions using the global array
+async getProjectContributions(proposalID: number): Promise<Contribution[]> {
+  // Find the project proposal with the given ID
+  const projectProposalEntry = this.proposalProposals.find((pair) => pair[0] === proposalID);
+
+  if (!projectProposalEntry) {
+    throw new Error(`Proposal with ID ${proposalID} not found`);
+  }
+
+  const projectProposal: ProjectProposal = projectProposalEntry[1];
+
+  // Return the project's contributions
+  return projectProposal.contributions;
+}
+
+// Add funds to the matching pool
+async fundMatchingPool(amount: number) {
+    // Access the matching pool balance from global state
+    let matchingPoolBalance = await this.getMatchingPoolBalance();
+
+    // Add the contribution to the matching pool balance
+    matchingPoolBalance += amount;
+
+    // Update the matching pool balance in global state
+    await this.setMatchingPoolBalance(matchingPoolBalance);
+}
+
+async setMatchingPoolBalance(balance: number) {
+    // Set the matching pool balance in global state
+    // Implementation goes here
+}
+
+// Get the current matching pool balance
+async getMatchingPoolBalance(): Promise<number> {
+    // Access the matching pool balance from global state
+    const matchingPoolBalance = await this.getMatchingPoolBalance();
+
+    return matchingPoolBalance;
+}
+
+// Get the start and end timestamps of the current funding period
+async getFundingPeriodData(): Promise<{ start: number; end: number }> {
+    const fundingPeriodStart = this.fundingPeriodStart.value;
+    const endTime = this.endTime.value; // Access the value of this.endTime
+
+    return {
+        start: fundingPeriodStart,
+        end: endTime,
+    };
+}
+  }
